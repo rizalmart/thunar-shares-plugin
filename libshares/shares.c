@@ -38,6 +38,7 @@
 
 #include <glib/gi18n-lib.h>
 #include "shares.h"
+#include <stdlib.h>
 
 #undef DEBUG_SHARES
 #ifdef DEBUG_SHARES
@@ -711,11 +712,17 @@ add_share (ShareInfo *info, GError **error)
 		return FALSE;
 
 	argv[0] = "add";
-	argv[1] = "-l";
+	argv[1] = "--long";
+	
 	argv[2] = info->share_name;
+	/*argv[2] = g_strdup_printf ("\"%s\"", info->share_name);*/
+	
 	argv[3] = info->path;
-	argv[4] = info->comment;
-
+	/* argv[3] = g_strdup_printf ("\"%s\"", info->path); */
+	
+	/* argv[4] = info->comment; */
+	argv[4] = g_strdup_printf ("\"%s \"", info->comment);
+	
 	if (info->is_writable){
 		argv[5] = "Everyone:F";
 	} else {
@@ -747,6 +754,9 @@ add_share (ShareInfo *info, GError **error)
 
 	copy = copy_share_info (info);
 	add_share_info_to_hashes (copy);
+	
+	system(g_strdup_printf("gio set -t stringv \"%s\" metadata::emblems emblem-shared",info->path));
+
 #ifdef G_ENABLE_DEBUG
 	g_message ("add_share() end SUCCESS");
 #endif
@@ -791,7 +801,9 @@ remove_share (const char *path, GError **error)
 	}
 
 	argv[0] = "delete";
+	
 	argv[1] = old_info->share_name;
+	/* argv[1] = g_strdup_printf ("\"%s\"", old_info->share_name); */
 
 	real_error = NULL;
 	if (!net_usershare_run (G_N_ELEMENTS (argv), argv, NULL, &real_error)) {
@@ -804,9 +816,14 @@ remove_share (const char *path, GError **error)
 #endif
 		return FALSE;
 	}
-
+	
+	system(g_strdup_printf("gio set -d \"%s\" metadata::emblems",old_info->path));
+	
 	remove_share_info_from_hashes (old_info);
+	
 	shares_free_share_info (old_info);
+	
+	
 #ifdef G_ENABLE_DEBUG
 	g_message ("remove_share() end SUCCESS");
 #endif
